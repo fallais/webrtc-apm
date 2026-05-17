@@ -1,7 +1,7 @@
 package capm
 
 /*
-#cgo pkg-config: webrtc-audio-processing-1
+#cgo pkg-config: webrtc-audio-processing-2
 #cgo CXXFLAGS: -std=c++17 -fPIC
 
 #include "capm.h"

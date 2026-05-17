@@ -6,7 +6,7 @@
 # when WEBRTC_APM_TAG bumps.
 
 WEBRTC_APM_REPO := https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing.git
-WEBRTC_APM_TAG  := v1.3
+WEBRTC_APM_TAG  := v2.1
 RNNOISE_REPO    := https://github.com/xiph/rnnoise.git
 
 DEPS_DIR := $(CURDIR)/.deps

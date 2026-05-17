@@ -16,7 +16,7 @@ fills that gap.
 | Layer | Library | Role |
 |---|---|---|
 | DNN pre-stage (optional) | [`rnnoise`](https://github.com/xiph/rnnoise) | Stationary + non-stationary noise suppression |
-| Main pipeline | [`webrtc-audio-processing 1.x`](https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing) | AEC3, classical NS, AGC1 |
+| Main pipeline | [`webrtc-audio-processing 2.x`](https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing) | AEC3, modern NS, AGC1 |
 
 Stacking rnnoise ahead of APM closes most of the perceptual gap to
 Chrome's modern audio stack on typical voice signals.

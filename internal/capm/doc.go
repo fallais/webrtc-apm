@@ -4,8 +4,8 @@
 // webrtc-apm lives in the root package and treats this package as an
 // implementation detail.
 //
-// The bridge targets the webrtc-audio-processing 1.x series (the
+// The bridge targets the webrtc-audio-processing 2.x series (the
 // freedesktop / PipeWire fork). On Linux it expects the
-// webrtc-audio-processing-1 pkg-config module; see the project Makefile
+// webrtc-audio-processing-2 pkg-config module; see the project Makefile
 // for a `deps` target that source-builds it.
 package capm

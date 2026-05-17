@@ -1,13 +1,16 @@
-// C++ wrapper exposing a C ABI over webrtc-audio-processing 1.x.
+// C++ wrapper exposing a C ABI over webrtc-audio-processing 2.x.
 //
-// 1.x replaces the legacy submodule setters (echo_cancellation()->Enable
-// etc.) with a single AudioProcessing::Config struct applied via
-// ApplyConfig, and replaces AudioFrame-based ProcessStream with
-// StreamConfig + raw int16 buffer calls.
+// 2.x carries forward the 1.x API shape (AudioProcessingBuilder +
+// AudioProcessing::Config + StreamConfig-based ProcessStream) with
+// improved AEC3, NS and transient-suppression tunings inherited from a
+// more recent libwebrtc snapshot.
 //
-// VAD is intentionally dropped: 1.x removed the standalone
-// voice_detection submodule. Callers who need VAD should use a separate
-// detector (e.g. silero-vad, webrtcvad-go) downstream of APM.
+// VAD is intentionally not exposed: the public voice_detection getter
+// was removed in 1.x and was not reinstated in 2.x. VAD still runs
+// internally (AGC2 / NS / AEC3 are all VAD-driven), but the verdict is
+// not stably consumable from outside. Callers needing a VAD verdict
+// should either enable rnnoise (whose ProcessFrame returns a voice
+// probability) or use a standalone detector downstream of APM.
 
 #include "capm.h"
 

@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  WEBRTC_APM_TAG: v1.3
+  WEBRTC_APM_TAG: v2.1
   PREFIX: /usr/local
 
 jobs:
@@ -49,15 +49,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /usr/local/lib/libwebrtc-audio-processing-1*
-            /usr/local/include/webrtc-audio-processing-1
-            /usr/local/lib/pkgconfig/webrtc-audio-processing-1.pc
+            /usr/local/lib/libwebrtc-audio-processing-2*
+            /usr/local/include/webrtc-audio-processing-2
+            /usr/local/lib/pkgconfig/webrtc-audio-processing-2.pc
             /usr/local/lib/librnnoise*
             /usr/local/include/rnnoise.h
             /usr/local/lib/pkgconfig/rnnoise.pc
-          key: native-deps-${{ env.WEBRTC_APM_TAG }}-v2
+          key: native-deps-${{ env.WEBRTC_APM_TAG }}-v1
 
-      - name: Build webrtc-audio-processing-1
+      - name: Build webrtc-audio-processing
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 --branch "$WEBRTC_APM_TAG" \
@@ -81,7 +81,7 @@ jobs:
 
       - name: Show pkg-config versions
         run: |
-          pkg-config --modversion webrtc-audio-processing-1
+          pkg-config --modversion webrtc-audio-processing-2
           pkg-config --modversion rnnoise
 
       - name: Build
