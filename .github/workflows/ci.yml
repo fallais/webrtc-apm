@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  WEBRTC_APM_TAG: v1.3
+  PREFIX: /usr/local
+
+jobs:
+  pure-go:
+    name: pure-Go (no system deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      - run: go build ./framer/...
+      - run: go vet ./framer/...
+      - run: go test ./framer/... -race -count=1
+
+  full:
+    name: full build (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Install build toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config \
+            meson ninja-build libabsl-dev \
+            autoconf automake libtool git
+
+      - name: Cache native deps
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/libwebrtc-audio-processing-1*
+            /usr/local/include/webrtc-audio-processing-1
+            /usr/local/lib/pkgconfig/webrtc-audio-processing-1.pc
+            /usr/local/lib/librnnoise*
+            /usr/local/include/rnnoise.h
+            /usr/local/lib/pkgconfig/rnnoise.pc
+          key: native-deps-${{ env.WEBRTC_APM_TAG }}-v2
+
+      - name: Build webrtc-audio-processing-1
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$WEBRTC_APM_TAG" \
+            https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing.git
+          cd webrtc-audio-processing
+          meson setup --prefix="$PREFIX" build
+          sudo meson install -C build
+
+      - name: Build rnnoise
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/xiph/rnnoise.git
+          cd rnnoise
+          ./autogen.sh
+          ./configure --prefix="$PREFIX"
+          make
+          sudo make install
+
+      - name: Refresh linker cache
+        run: sudo ldconfig
+
+      - name: Show pkg-config versions
+        run: |
+          pkg-config --modversion webrtc-audio-processing-1
+          pkg-config --modversion rnnoise
+
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./... -race -count=1
