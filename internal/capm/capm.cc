@@ -18,14 +18,15 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <memory>
+#include <utility>
 
 using webrtc::AudioProcessing;
 using webrtc::AudioProcessingBuilder;
 using webrtc::StreamConfig;
 
 struct capm {
-    std::unique_ptr<AudioProcessing> apm;
+    /* v2.x returns scoped_refptr from AudioProcessingBuilder::Create. */
+    webrtc::scoped_refptr<AudioProcessing> apm;
     int sample_rate_hz;
     int num_channels;
 };
@@ -35,7 +36,7 @@ extern "C" {
 capm_t *capm_create(const capm_config_t *cfg) {
     if (!cfg) return nullptr;
 
-    std::unique_ptr<AudioProcessing> apm(AudioProcessingBuilder().Create());
+    auto apm = AudioProcessingBuilder().Create();
     if (!apm) return nullptr;
 
     AudioProcessing::Config config;
