@@ -29,10 +29,14 @@ func main() {
 	var (
 		outDir    = flag.String("out-dir", ".", "directory to write WAV files into")
 		duration  = flag.Duration("duration", 5*time.Second, "max record duration (Ctrl+C also stops)")
-		enableRNN = flag.Bool("rnn", true, "enable rnnoise DNN pre-stage")
+		// Defaults match the library's recommended config: AEC + AGC on,
+		// NS / rnnoise off (they introduce gating artifacts on clean
+		// speech — see README Tuning notes). Flip them on for noisy
+		// environments.
+		enableRNN = flag.Bool("rnn", false, "enable rnnoise DNN pre-stage")
 		enableAEC = flag.Bool("aec", true, "enable echo cancellation")
-		enableNS  = flag.Bool("ns", true, "enable noise suppression")
-		nsLevelS  = flag.String("ns-level", "high", "NS level: low|moderate|high|very-high")
+		enableNS  = flag.Bool("ns", false, "enable noise suppression")
+		nsLevelS  = flag.String("ns-level", "moderate", "NS level: low|moderate|high|very-high")
 		enableAGC = flag.Bool("agc", true, "enable automatic gain control")
 	)
 	flag.Parse()
