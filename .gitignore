@@ -2,3 +2,17 @@
 *.test
 *.out
 .DS_Store
+
+# Source-built native deps from `make deps`.
+/.deps/
+
+# Compiled binaries written to the repo root by `go build .` shortcuts.
+/record
+/aec-record
+
+# Cached far-end speech sample fetched by examples/aec-record on first run.
+/examples/aec-record/testdata/
+
+# WAV files written by examples — keep them out of git.
+*.wav
+/runs/
