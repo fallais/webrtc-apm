@@ -24,17 +24,18 @@ import (
 // contract. Safe for concurrent use across the Transform's Read
 // goroutine and a caller-driven FeedReverse goroutine.
 type Bridge struct {
-	proc      *apm.Processor
 	cfg       apm.Config
 	frameSize int
 
-	capMu sync.Mutex
-	cap   *framer.Framer
-	cWork []int16
-
-	revMu sync.Mutex
-	rev   *framer.Framer
-	rWork []int16
+	// procMu serialises every call into the underlying apm.Processor
+	// (and therefore the C++ AudioProcessing instance, which is not
+	// thread-safe across ProcessStream / ProcessReverseStream).
+	procMu sync.Mutex
+	proc   *apm.Processor
+	cap    *framer.Framer
+	cWork  []int16
+	rev    *framer.Framer
+	rWork  []int16
 }
 
 // New constructs a Bridge configured per cfg. The Bridge owns the
@@ -99,7 +100,7 @@ func (b *Bridge) Transform() audio.TransformFunc {
 				}
 				ci = cc
 
-				b.capMu.Lock()
+				b.procMu.Lock()
 				b.cap.Push(iv.Data)
 				var perr error
 				for b.cap.Pop(b.cWork) {
@@ -109,7 +110,7 @@ func (b *Bridge) Transform() audio.TransformFunc {
 					}
 					out = append(out, b.cWork...)
 				}
-				b.capMu.Unlock()
+				b.procMu.Unlock()
 
 				if release != nil {
 					release()
@@ -148,8 +149,8 @@ func (b *Bridge) FeedReverse(samples []int16) error {
 	if len(samples) == 0 {
 		return nil
 	}
-	b.revMu.Lock()
-	defer b.revMu.Unlock()
+	b.procMu.Lock()
+	defer b.procMu.Unlock()
 	b.rev.Push(samples)
 	for b.rev.Pop(b.rWork) {
 		if err := b.proc.ProcessReverseStream(b.rWork); err != nil {
