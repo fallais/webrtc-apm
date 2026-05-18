@@ -4,7 +4,7 @@
 //
 // This is the same pattern an application would use to plug webrtc-apm
 // into an existing malgo-based audio path. For a pion/mediadevices
-// integration, see the mediadevicesx package instead.
+// integration, see the pionapm package instead.
 package main
 
 import (

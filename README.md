@@ -118,21 +118,71 @@ tests on any machine even without the native libraries installed.
 
 ```go
 import (
+    "log"
+
     "github.com/pion/mediadevices"
+    "github.com/pion/mediadevices/pkg/prop"
     _ "github.com/pion/mediadevices/pkg/driver/microphone"
 
     apm "github.com/fallais/webrtc-apm"
-    "github.com/fallais/webrtc-apm/mediadevicesx"
+    "github.com/fallais/webrtc-apm/pionapm"
 )
 
-transform, err := mediadevicesx.NewTransform(apm.Config{
+// Capture at 48 kHz mono so APM's config matches the chunk rate / channels.
+stream, err := mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
+    Audio: func(c *mediadevices.MediaTrackConstraints) {
+        c.SampleRate   = prop.Int(48000)
+        c.ChannelCount = prop.Int(1)
+    },
+})
+if err != nil { log.Fatal(err) }
+
+bridge, err := pionapm.New(apm.Config{
     SampleRate: 48000, Channels: 1,
     EnableAEC: true, EnableAGC: true,
-    // EnableNS / EnableRNNoise off by default — see Tuning notes.
+    // NS / rnnoise off — see Tuning notes.
 })
-// then feed transform.ProcessSamples / ProcessReverseSamples
-// from the mediadevices audio track and your playback graph.
+if err != nil { log.Fatal(err) }
+defer bridge.Close()
+
+track := stream.GetAudioTracks()[0].(*mediadevices.AudioTrack)
+track.Transform(bridge.Transform())
 ```
+
+`bridge.Transform()` returns a
+[`audio.TransformFunc`](https://pkg.go.dev/github.com/pion/mediadevices/pkg/io/audio#TransformFunc),
+which is the exact contract that `(*mediadevices.AudioTrack).Transform`
+accepts. No glue code is needed; the transform sits inside the track's
+broadcaster pipeline and runs on every chunk before downstream
+consumers (Opus encoder, `TrackLocalStaticSample`, etc.) see it.
+
+### AEC with mediadevices needs a far-end reference
+
+`pion/mediadevices`' transform contract is one-way, so AEC's reverse
+stream has no native place to live. When `EnableAEC: true`, you must
+also feed the bridge what you're about to play through the
+loudspeakers:
+
+```go
+// In your playback path:
+for chunk := range playbackChunks { // []int16, 48 kHz mono
+    _ = bridge.FeedReverse(chunk)
+    sendToPlayback(chunk)
+}
+```
+
+Without `FeedReverse`, AEC has no reference and will not converge — it
+won't actively *hurt* anything, but it won't actively help either. If
+you don't have a playback path or don't need AEC, leave
+`EnableAEC: false` and skip `FeedReverse` entirely.
+
+### Constraints
+
+`bridge.Transform()` requires upstream chunks to be
+`*wave.Int16Interleaved` at the same `SampleRate` and `Channels` you
+declared in `apm.Config`. Any mismatch produces an error from `Read()`.
+Configure your mediadevices `MediaTrackConstraints` accordingly (as in
+the snippet above).
 
 ## Tuning notes
 

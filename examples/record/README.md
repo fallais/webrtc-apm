@@ -38,7 +38,7 @@ miniaudio) because that's what most standalone Go audio applications
 use, and it's also the backend `pion/mediadevices` uses internally.
 
 For a `pion/mediadevices` application the more idiomatic path is to
-attach `webrtc-apm/mediadevicesx` as an audio transform on the
+attach `webrtc-apm/pionapm` as an audio transform on the
 `mediadevices` `AudioTrack` — see the top-level README for that snippet.
 This demo deliberately stays one layer lower so you can see the data
 flow plainly.
