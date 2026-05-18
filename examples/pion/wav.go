@@ -63,8 +63,8 @@ func (w *wavWriter) headerBytes(dataSize uint32) []byte {
 	binary.LittleEndian.PutUint32(buf[4:8], 36+dataSize)
 	copy(buf[8:12], "WAVE")
 	copy(buf[12:16], "fmt ")
-	binary.LittleEndian.PutUint32(buf[16:20], 16) // fmt chunk size
-	binary.LittleEndian.PutUint16(buf[20:22], 1)  // PCM format
+	binary.LittleEndian.PutUint32(buf[16:20], 16)
+	binary.LittleEndian.PutUint16(buf[20:22], 1)
 	binary.LittleEndian.PutUint16(buf[22:24], w.channels)
 	binary.LittleEndian.PutUint32(buf[24:28], w.sampleRate)
 	binary.LittleEndian.PutUint32(buf[28:32], byteRate)
