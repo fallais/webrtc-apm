@@ -133,12 +133,9 @@ transform, err := mediadevicesx.NewTransform(apm.Config{
 
 ## What this is not
 
-- **Not a Chrome-quality drop-in.** rnnoise + APM 1.x gets you very
+- **Not a Chrome-quality drop-in.** rnnoise + APM 2.x gets you very
   close on most voice signals but Chrome ships newer libwebrtc with
   additional ML and OS integration.
-- **Not a VAD library.** APM 1.x dropped the standalone VAD submodule.
-  Pair with [`webrtcvad-go`](https://github.com/maxhawkins/go-webrtcvad)
-  or silero-vad downstream of `ProcessStream` if you need one.
 - **Not pure Go.** Both backends are C/C++ and reached via cgo.
 
 ## License
