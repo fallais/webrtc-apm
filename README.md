@@ -116,6 +116,12 @@ tests on any machine even without the native libraries installed.
 
 ## With pion/mediadevices
 
+### Simpler case: no AEC (NS / AGC / rnnoise only)
+
+If you don't have a playback path (one-way capture, transcription,
+voice activity detection, etc.) or simply don't need echo cancellation,
+the integration is a few lines:
+
 ```go
 import (
     "log"
@@ -139,8 +145,8 @@ if err != nil { log.Fatal(err) }
 
 bridge, err := pionapm.New(apm.Config{
     SampleRate: 48000, Channels: 1,
-    EnableAEC: true, EnableAGC: true,
-    // NS / rnnoise off — see Tuning notes.
+    EnableAGC: true,
+    // EnableAEC defaults to false; EnableNS / EnableRNNoise off.
 })
 if err != nil { log.Fatal(err) }
 defer bridge.Close()
@@ -156,7 +162,7 @@ accepts. No glue code is needed; the transform sits inside the track's
 broadcaster pipeline and runs on every chunk before downstream
 consumers (Opus encoder, `TrackLocalStaticSample`, etc.) see it.
 
-### AEC with mediadevices needs a far-end reference
+### With AEC: feed the far-end reference
 
 `pion/mediadevices`' transform contract is one-way, so AEC's reverse
 stream has no native place to live. When `EnableAEC: true`, you must
@@ -164,6 +170,13 @@ also feed the bridge what you're about to play through the
 loudspeakers:
 
 ```go
+bridge, _ := pionapm.New(apm.Config{
+    SampleRate: 48000, Channels: 1,
+    EnableAEC: true, EnableAGC: true,
+})
+defer bridge.Close()
+track.Transform(bridge.Transform())
+
 // In your playback path:
 for chunk := range playbackChunks { // []int16, 48 kHz mono
     _ = bridge.FeedReverse(chunk)
@@ -172,17 +185,33 @@ for chunk := range playbackChunks { // []int16, 48 kHz mono
 ```
 
 Without `FeedReverse`, AEC has no reference and will not converge — it
-won't actively *hurt* anything, but it won't actively help either. If
-you don't have a playback path or don't need AEC, leave
-`EnableAEC: false` and skip `FeedReverse` entirely.
+won't actively *hurt* anything, but it won't actively help either.
 
-### Constraints
+### Constraints and behavior
 
-`bridge.Transform()` requires upstream chunks to be
-`*wave.Int16Interleaved` at the same `SampleRate` and `Channels` you
-declared in `apm.Config`. Any mismatch produces an error from `Read()`.
-Configure your mediadevices `MediaTrackConstraints` accordingly (as in
-the snippet above).
+- **Sample rate / channels.** Upstream chunks must arrive at the
+  `SampleRate` and `Channels` you declared in `apm.Config`. Any
+  mismatch produces an error from `Read()`. Set
+  `MediaTrackConstraints.SampleRate` and `ChannelCount` to match.
+- **Wave variants.** All four `wave.Audio` variants are accepted —
+  `*wave.Int16Interleaved`, `*wave.Int16NonInterleaved`,
+  `*wave.Float32Interleaved`, `*wave.Float32NonInterleaved`. Output
+  preserves the input variant. Float ↔ int16 conversion happens
+  internally because APM works on int16; clipping is applied at the
+  boundary.
+- **Output chunk size is variable.** The transform rebuffers upstream
+  input into 10 ms internal frames for APM and emits whatever it has
+  processed in each `Read`. A 100 ms upstream chunk yields a single
+  ~100 ms output chunk; a 5 ms upstream chunk yields nothing until
+  more samples arrive. Downstream encoders (Opus, etc.) handle this
+  correctly.
+- **FeedReverse rate.** `[]int16` carries no rate information, so the
+  caller is responsible for providing samples at `apm.Config.SampleRate`
+  and `apm.Config.Channels`. A length not divisible by `Channels` is
+  rejected; everything else is taken on trust.
+- **Thread safety.** A single `sync.Mutex` serialises every entry
+  into the underlying `apm.Processor`, so `Transform`'s read goroutine
+  and a caller's `FeedReverse` goroutine are safe to run concurrently.
 
 ## Tuning notes
 
