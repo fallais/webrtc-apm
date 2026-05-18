@@ -263,7 +263,14 @@ func ensureCached(dir, url string) (string, error) {
 		return path, nil
 	}
 	fmt.Printf("downloading %s\n  → %s\n", url, path)
-	resp, err := http.Get(url) //nolint:gosec // URL is a hardcoded constant.
+	req, err := http.NewRequest(http.MethodGet, url, nil) //nolint:gosec // URL is a hardcoded constant.
+	if err != nil {
+		return "", err
+	}
+	// Some upstream hosts reject the default Go-http-client UA with 406.
+	req.Header.Set("User-Agent", "webrtc-apm/0 (+https://github.com/fallais/webrtc-apm)")
+	req.Header.Set("Accept", "*/*")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
