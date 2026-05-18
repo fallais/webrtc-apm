@@ -7,12 +7,10 @@
 /.deps/
 
 # Compiled binaries written to the repo root by `go build .` shortcuts.
-/record
-/aec-record
+/pion
+/pion-aec
 
-# Cached far-end speech sample fetched by examples/aec-record on first run.
-/examples/aec-record/testdata/
-
-# WAV files written by examples — keep them out of git.
+# WAV files (none of the examples write them anymore, but ad-hoc test
+# runs may produce some).
 *.wav
 /runs/
