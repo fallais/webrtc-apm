@@ -45,10 +45,16 @@ func main() {
 		duration  = flag.Duration("duration", 0, "max record duration (0 = play far-end through to the end)")
 		enableAEC = flag.Bool("aec", true, "enable echo cancellation")
 		enableNS  = flag.Bool("ns", false, "enable noise suppression (off by default to isolate AEC)")
+		nsLevelS  = flag.String("ns-level", "high", "NS level: low|moderate|high|very-high")
 		enableAGC = flag.Bool("agc", false, "enable AGC (off by default to isolate AEC)")
 		enableRNN = flag.Bool("rnn", false, "enable rnnoise (off by default to isolate AEC)")
 	)
 	flag.Parse()
+
+	nsLevel, err := parseNSLevel(*nsLevelS)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Resolve / fetch the far-end WAV.
 	farEndPath := *farEndArg
@@ -78,7 +84,7 @@ func main() {
 		EnableRNNoise: *enableRNN,
 		EnableAEC:     *enableAEC,
 		EnableNS:      *enableNS,
-		NSLevel:       apm.NSHigh,
+		NSLevel:       nsLevel,
 		EnableAGC:     *enableAGC,
 		AGCMode:       apm.AGCAdaptiveDigital,
 	})
@@ -251,6 +257,20 @@ loop:
 	fmt.Printf("  far : %s\n", farPath)
 	fmt.Printf("  in  : %s\n", inPath)
 	fmt.Printf("  out : %s\n", outPath)
+}
+
+func parseNSLevel(s string) (apm.NSLevel, error) {
+	switch s {
+	case "low":
+		return apm.NSLow, nil
+	case "moderate":
+		return apm.NSModerate, nil
+	case "high":
+		return apm.NSHigh, nil
+	case "very-high":
+		return apm.NSVeryHigh, nil
+	}
+	return 0, fmt.Errorf("invalid ns-level %q (use low|moderate|high|very-high)", s)
 }
 
 // ensureCached returns a local path to the file at url, downloading once.
